@@ -59,7 +59,32 @@ def tokenize(text):
    
     return stemmed
 
-
+#Define new custom transformer called Special_Punc_Counter to get average amount of special punctuation per sentence
+class Special_Puncs_Counter():
+    #count_special_puncs method is the main method to count special pnctuations
+    def count_special_puncs(self, text):
+        """
+        This function analyzes the amount of special punctuations and divide it by number of sentences
+        Imput: Text to analyze
+        Output: Calculated special punctuation per sentence
+        """
+        sentence_list = nltk.sent_tokenize(text)
+        num_sentence = len(sentence_list)
+        count = 0
+        for sentence in sentence_list:
+            puncs = re.findall(r'[!?~<>({:;]',sentence)
+            count += len(puncs)
+        return count/num_sentence
+    
+    #Define fit method
+    def fit(self, X, y=None):
+        return self
+    
+    #Define transform method to transform series of interest
+    def transform(self, X):
+        X_tagged = pd.Series(X).apply(self.count_special_puncs)
+        return pd.DataFrame(X_tagged)
+    
 def build_model():
     #Create pipeline object
     Original_pipeline = Pipeline(
@@ -70,11 +95,34 @@ def build_model():
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
-    pass
+    #Report test set results
+    y_pred = model.predict(X_test)
+    Metrics = pd.DataFrame(columns = ["accuracy", "precision", "recall", "f1-score"])
+    num_of_labels = Y_test.shape[1]
+    
+    for i in range(num_of_labels):
+        test = Y_test[:,i]
+        predict = y_pred[:,i]
+        TP = np.sum(np.logical_and(test == 1, predict == 1))
+        FN = np.sum(np.logical_and(test == 1, predict == 0))
+        FP = np.sum(np.logical_and(test == 0, predict == 1))
+        TN = np.sum(np.logical_and(test == 0, predict == 0))
+        accuracy = (TP + TN)/(TP + TN + FP +FN)
+        precision = TP / (TP + FP)
+        recall = TP / (TP + FN)
+        f1_score = 2*(precision*recall)/(precision + recall)
+        Metrics = Metrics.append({"accuracy": accuracy, "precision": precision, \
+                                  "recall": recall, "f1-score": f1_score}, ignore_index = True)
+    Metrics.index = list(category_names)
+    Metrics.to_csv("Metrics_cv.csv")
+    return Metrics
 
 
 def save_model(model, model_filepath):
-    pass
+    import pickle
+    pickle_file = open(model_filepath,'wb')
+    pickle.dump(model, pickle_file)
+
 
 
 def main():
@@ -83,7 +131,7 @@ def main():
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
         X, Y, category_names = load_data(database_filepath)
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
-        
+        print(X_train.shape)
         #print('Building model...')
         #model = build_model()
         
