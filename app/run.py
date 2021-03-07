@@ -25,12 +25,42 @@ def tokenize(text):
 
     return clean_tokens
 
+#Define new custom transformer called Special_Punc_Counter to get average amount of special punctuation per sentence
+class Special_Puncs_Counter():
+    #count_special_puncs method is the main method to count special pnctuations
+    def count_special_puncs(self, text):
+        """
+        This function analyzes the amount of special punctuations and divide it by number of sentences
+        Imput: Text to analyze
+        Output: Calculated special punctuation per sentence
+        """
+        sentence_list = nltk.sent_tokenize(text)
+        num_sentence = len(sentence_list)
+        count = 0
+        for sentence in sentence_list:
+            puncs = re.findall(r'[!?~<>({:;]',sentence)
+            count += len(puncs)
+        try:
+            return count/num_sentence
+        except:
+            return 0
+    #Define fit method
+    def fit(self, X, y=None):
+        return self
+    
+    #Define transform method to transform series of interest
+    def transform(self, X):
+        X_tagged = pd.Series(X).apply(self.count_special_puncs)
+        return pd.DataFrame(X_tagged)
+
+template
+
 # load data
-engine = create_engine('sqlite:///../data/YourDatabaseName.db')
-df = pd.read_sql_table('YourTableName', engine)
+engine = create_engine('sqlite:///../data/DisasterResponse.db')
+df = pd.read_sql_table('Disaster_Response_Table', engine)
 
 # load model
-model = joblib.load("../models/your_model_name.pkl")
+model = joblib.load("../models/classifier.pkl")
 
 
 # index webpage displays cool visuals and receives user input text for model

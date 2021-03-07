@@ -74,8 +74,10 @@ class Special_Puncs_Counter():
         for sentence in sentence_list:
             puncs = re.findall(r'[!?~<>({:;]',sentence)
             count += len(puncs)
-        return count/num_sentence
-    
+        try:
+            return count/num_sentence
+        except:
+            return 0
     #Define fit method
     def fit(self, X, y=None):
         return self
@@ -87,35 +89,53 @@ class Special_Puncs_Counter():
     
 def build_model():
     #Create pipeline object
-    Original_pipeline = Pipeline(
-    [("Vectorizer",CountVectorizer(tokenizer = tokenize)),\
-    ("TFIDF",TfidfTransformer()),\
-    ("Estimator",MultiOutputClassifier(RandomForestClassifier()))])
+    Original_pipeline = Pipeline([
+        ('features', FeatureUnion([
 
+            ('text_processing', Pipeline([
+                ('vect', CountVectorizer(tokenizer = tokenize)),
+                ('tfidf', TfidfTransformer())
+            ])),
+
+            ('count_special_puncs', Special_Puncs_Counter())
+        ])),
+
+        ('Estimator', MultiOutputClassifier(RandomForestClassifier()))
+    ])
+    return Original_pipeline
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
     #Report test set results
     y_pred = model.predict(X_test)
+
+    #Create dataframe to store metrics
     Metrics = pd.DataFrame(columns = ["accuracy", "precision", "recall", "f1-score"])
     num_of_labels = Y_test.shape[1]
     
     for i in range(num_of_labels):
+        #Retrieve test and predicted value for that label
         test = Y_test[:,i]
         predict = y_pred[:,i]
+    
+        #Find number of True Positives, False Negatives, False positives and True Negatives
         TP = np.sum(np.logical_and(test == 1, predict == 1))
         FN = np.sum(np.logical_and(test == 1, predict == 0))
         FP = np.sum(np.logical_and(test == 0, predict == 1))
         TN = np.sum(np.logical_and(test == 0, predict == 0))
+    
+        #Calculate accuracy, preicsion, recall and f1_score
         accuracy = (TP + TN)/(TP + TN + FP +FN)
         precision = TP / (TP + FP)
         recall = TP / (TP + FN)
         f1_score = 2*(precision*recall)/(precision + recall)
-        Metrics = Metrics.append({"accuracy": accuracy, "precision": precision, \
-                                  "recall": recall, "f1-score": f1_score}, ignore_index = True)
-    Metrics.index = list(category_names)
-    Metrics.to_csv("Metrics_cv.csv")
-    return Metrics
+    
+        #Append metrics to dataframe
+        Metrics = Metrics.append({"accuracy": accuracy, "precision": precision, "recall": recall, "f1-score": f1_score}, ignore_index = True)
+
+        #Export results to CSV
+        Metrics.to_csv("Metrics.csv")
+        
 
 
 def save_model(model, model_filepath):
@@ -130,21 +150,21 @@ def main():
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
         X, Y, category_names = load_data(database_filepath)
-        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
+        X_train, X_test, Y_train, Y_test = train_test_split(X[:1000], Y[:1000], test_size=0.2)
         print(X_train.shape)
-        #print('Building model...')
-        #model = build_model()
+        print('Building model...')
+        model = build_model()
         
-        #print('Training model...')
-        #model.fit(X_train, Y_train)
+        print('Training model...')
+        model.fit(X_train, Y_train)
         
-       # print('Evaluating model...')
-       # evaluate_model(model, X_test, Y_test, category_names)
+        print('Evaluating model...')
+        evaluate_model(model, X_test, Y_test, category_names)
 
-        #print('Saving model...\n    MODEL: {}'.format(model_filepath))
-        #save_model(model, model_filepath)
+        print('Saving model...\n    MODEL: {}'.format(model_filepath))
+        save_model(model, model_filepath)
 
-        #print('Trained model saved!')
+        print('Trained model saved!')
 
     else:
         print('Please provide the filepath of the disaster messages database '\
