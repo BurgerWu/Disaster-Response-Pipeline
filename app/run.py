@@ -14,16 +14,41 @@ from sqlalchemy import create_engine
 
 app = Flask(__name__)
 
+#def tokenize(text):
+#    tokens = word_tokenize(text)
+#    lemmatizer = WordNetLemmatizer()
+
+#    clean_tokens = []
+#    for tok in tokens:
+#        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
+#        clean_tokens.append(clean_tok)
+
+#    return clean_tokens
+
+
 def tokenize(text):
-    tokens = word_tokenize(text)
+    """
+    This tokenize function processes input text to generate useful word tokens
+    Input: text content
+    Output: processed word tokens
+    """
+    # Define stop_words and create stemming and lemmatizing objects
+    stop_words = stopwords.words("english")
+    stemming = PorterStemmer()
     lemmatizer = WordNetLemmatizer()
 
-    clean_tokens = []
-    for tok in tokens:
-        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
-        clean_tokens.append(clean_tok)
+    # First use regular expression to get rid of punctuations
+    text = re.sub(r'[^a-zA-Z0-9]', ' ', text.lower())
 
-    return clean_tokens
+    # Then tokenize the text and eliminate stop words
+    words = word_tokenize(text)
+    words = [w for w in words if w not in stopwords.words("english")]
+
+    # In the last step, process the word token list with lemmitizer and then stemmer
+    lemmed = [WordNetLemmatizer().lemmatize(w) for w in words]
+    stemmed = [PorterStemmer().stem(w) for w in lemmed]
+
+    return stemmed
 
 #Define new custom transformer called Special_Punc_Counter to get average amount of special punctuation per sentence
 class Special_Puncs_Counter():
@@ -53,7 +78,7 @@ class Special_Puncs_Counter():
         X_tagged = pd.Series(X).apply(self.count_special_puncs)
         return pd.DataFrame(X_tagged)
 
-template
+#template
 
 # load data
 engine = create_engine('sqlite:///../data/DisasterResponse.db')
