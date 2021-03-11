@@ -16,21 +16,10 @@ from plotly.graph_objs import Bar
 from sklearn.externals import joblib
 from sqlalchemy import create_engine
 
-
+#Create flask app
 app = Flask(__name__)
 
-#def tokenize(text):
-#    tokens = word_tokenize(text)
-#    lemmatizer = WordNetLemmatizer()
-
-#    clean_tokens = []
-#    for tok in tokens:
-#        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
-#        clean_tokens.append(clean_tok)
-
-#    return clean_tokens
-
-
+#Define tokenize function
 def tokenize(text):
     """
     This tokenize function processes input text to generate useful word tokens
@@ -64,16 +53,22 @@ class Special_Puncs_Counter():
         Imput: Text to analyze
         Output: Calculated special punctuation per sentence
         """
+        #Use sent_tokenize to process input text
         sentence_list = nltk.sent_tokenize(text)
         num_sentence = len(sentence_list)
         count = 0
+        
+        #Iterate through sentences to count special punctuations
         for sentence in sentence_list:
             puncs = re.findall(r'[!?~<>({:;]',sentence)
             count += len(puncs)
+     
+        #Calculate special punctuation per sentence
         try:
             return count/num_sentence
         except:
             return 0
+        
     #Define fit method
     def fit(self, X, y=None):
         return self
@@ -150,6 +145,86 @@ def index():
                     'title': "Category"
                 }
             }
+        },
+                        {
+            'data': [
+                Bar(
+                    x=list(X_type_count),
+                    y=list(Y_type_count)
+                )
+            ],
+
+            'layout': {
+                'title': 'Distribution of Message Categories',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Category"
+                }
+            }
+        },
+         {
+            'data': [
+                {'x':list(Metrics.iloc[:,0]),
+                 'y':list(Metrics['RandomForest_accuracy']),
+                 'name':'RandomForest',
+                 'mode':'lines+markers'},
+                 {'x':list(Metrics.iloc[:,0]),
+                 'y':list(Metrics['RandomForest with New Feature_accuracy']),
+                 'name':'RandomForest with Custom Feature',
+                 'mode':'lines+markers'},
+                {'x':list(Metrics.iloc[:,0]),
+                 'y':list(Metrics['AdaBoostClassifier_accuracy']),
+                 'name':'AdaBoost',
+                 'mode':'lines+markers'},
+                {'x':list(Metrics.iloc[:,0]),
+                 'y':list(Metrics['AdaBoostClassifier with New Feature_accuracy']),
+                 'name':'AdaBoost with Custom Feature',
+                 'mode':'lines+markers'}
+               
+            ],
+
+            'layout': {
+                'title': 'Accuracy Comparison of Algorithms',
+                'yaxis': {
+                    'title': "Accuracy"
+                },
+                'xaxis': {
+                    'title': "Categories"
+                }
+            }
+        },
+                {
+            'data': [
+                {'x':list(Metrics.iloc[:,0]),
+                 'y':list(Metrics['RandomForest_f1_score']),
+                 'name':'RandomForest',
+                 'mode':'lines+markers'},
+                 {'x':list(Metrics.iloc[:,0]),
+                 'y':list(Metrics['RandomForest with New Feature_f1_score']),
+                 'name':'RandomForest with Custom Feature',
+                 'mode':'lines+markers'},
+                {'x':list(Metrics.iloc[:,0]),
+                 'y':list(Metrics['AdaBoostClassifier_f1_score']),
+                 'name':'AdaBoost',
+                 'mode':'lines+markers'},
+                {'x':list(Metrics.iloc[:,0]),
+                 'y':list(Metrics['AdaBoostClassifier with New Feature_f1_score']),
+                 'name':'AdaBoost with Custom Feature',
+                 'mode':'lines+markers'}
+               
+            ],
+
+            'layout': {
+                'title': 'f1 score Comparison of Algorithms',
+                'yaxis': {
+                    'title': "f1 score"
+                },
+                'xaxis': {
+                    'title': "Categories"
+                }
+            }
         }
         
     ]
@@ -182,7 +257,7 @@ def go():
 
 def main():
     port = int(os.environ.get('PORT', 3001))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='127.0.0.1', port=port, debug=True)
 
 
 if __name__ == '__main__':

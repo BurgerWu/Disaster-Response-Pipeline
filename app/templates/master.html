@@ -23,7 +23,7 @@
         <div id="navbar" class="collapse navbar-collapse">
             <ul class="nav navbar-nav">
                 <li><a href="https://www.udacity.com/">Made with Udacity</a></li>
-                <li><a href="https://github.com/">Contact</a></li>
+                <li><a href="https://github.com/BurgerWu/Disaster-Response-Pipeline">GitHub</a></li>
             </ul>
         </div>
     </div>
@@ -56,6 +56,9 @@
     {% block content %}
         <div class="page-header">
             <h1 class="text-center">Overview of Training Dataset</h1>
+            <li class="text-instruction">The original size of the dataset is 26216*40</li>
+            <li class="text-instruction">There are 36 kinds of labels in our classification</li>
+	    <li class="text-instruction">The final model is AdaBoost Classifier with our custom feature transformer(Special Punctuation Counter)</li>
         </div>
     {% endblock %}
 

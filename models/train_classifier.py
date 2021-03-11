@@ -225,13 +225,13 @@ def main():
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
         X, Y, category_names = load_data(database_filepath)
         num_of_labels = Y.shape[1]
-        X_train, X_test, Y_train, Y_test = train_test_split(X[:100], Y[:100], test_size = 0.2)
+        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.2)
         print('Building model...')
         model_dict = build_model()
  
         print('Training model...')
         for clf in model_dict.keys():
-            print("Traing model {}".format(clf))
+            print("Training model {}".format(clf))
             model_dict[clf].fit(X_train, Y_train)
         
         print('Evaluating model...')
