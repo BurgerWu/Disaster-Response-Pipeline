@@ -12,11 +12,12 @@ from nltk.corpus import stopwords
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.metrics import classification_report
 
+nltk.download('averaged_perceptron_tagger')
 nltk.download('punkt')
 nltk.download('stopwords')
 nltk.download('wordnet')
@@ -89,7 +90,14 @@ class Special_Puncs_Counter():
     
 def build_model():
     #Create pipeline object
-    Original_pipeline = Pipeline([
+    #RandomForest Algorithm without new feature
+    RF_pipeline = Pipeline([
+                    ("Vectorizer",CountVectorizer(tokenizer = tokenize)),\
+     			    ("TFIDF",TfidfTransformer()),\
+                    ("Estimator",MultiOutputClassifier(RandomForestClassifier(n_estimators = 100, min_samples_split = 3)))])
+
+    #RandomForest Algorithm with new feature
+    RF_pipeline_feat = Pipeline([
         ('features', FeatureUnion([
 
             ('text_processing', Pipeline([
@@ -100,42 +108,108 @@ def build_model():
             ('count_special_puncs', Special_Puncs_Counter())
         ])),
 
-        ('Estimator', MultiOutputClassifier(RandomForestClassifier()))
+        ('Estimator', MultiOutputClassifier(RandomForestClassifier(n_estimators = 100, min_samples_split = 3)))
     ])
-    return Original_pipeline
+
+    #AdaBoost Algorithm without new feature
+    AB_pipeline = Pipeline([("Vectorizer",CountVectorizer(tokenizer = tokenize)),\
+                            ("TFIDF",TfidfTransformer()),\
+                            ("Estimator",MultiOutputClassifier(AdaBoostClassifier()))])
+
+    #AdaBoost Algorithm without new feature
+    AB_pipeline_feat = Pipeline([
+        ('features', FeatureUnion([
+
+            ('text_processing', Pipeline([
+                ('vect', CountVectorizer(tokenizer = tokenize)),
+                ('tfidf', TfidfTransformer())
+            ])),
+
+            ('count_special_puncs', Special_Puncs_Counter())
+        ])),
+
+        ('Estimator', MultiOutputClassifier(AdaBoostClassifier()))
+    ])
+	
+    model_dict = {"RandomForest":RF_pipeline,\
+              "RandomForest with New Feature":RF_pipeline_feat,\
+              "AdaBoostClassifier":AB_pipeline,\
+              "AdaBoostClassifier with New Feature":AB_pipeline_feat}
+
+    return model_dict
 
 
-def evaluate_model(model, X_test, Y_test, category_names):
-    #Report test set results
-    y_pred = model.predict(X_test)
+def evaluate_model(model_dict, X_test, Y_test, category_names, num_of_labels):
 
-    #Create dataframe to store metrics
-    Metrics = pd.DataFrame(columns = ["accuracy", "precision", "recall", "f1-score"])
-    num_of_labels = Y_test.shape[1]
-    
-    for i in range(num_of_labels):
-        #Retrieve test and predicted value for that label
-        test = Y_test[:,i]
-        predict = y_pred[:,i]
-    
-        #Find number of True Positives, False Negatives, False positives and True Negatives
-        TP = np.sum(np.logical_and(test == 1, predict == 1))
-        FN = np.sum(np.logical_and(test == 1, predict == 0))
-        FP = np.sum(np.logical_and(test == 0, predict == 1))
-        TN = np.sum(np.logical_and(test == 0, predict == 0))
-    
-        #Calculate accuracy, preicsion, recall and f1_score
-        accuracy = (TP + TN)/(TP + TN + FP +FN)
-        precision = TP / (TP + FP)
-        recall = TP / (TP + FN)
-        f1_score = 2*(precision*recall)/(precision + recall)
-    
-        #Append metrics to dataframe
-        Metrics = Metrics.append({"accuracy": accuracy, "precision": precision, "recall": recall, "f1-score": f1_score}, ignore_index = True)
+    Metrics = pd.DataFrame(index = category_names)
+    for classifier in model_dict.keys():
+        print("Evaluating {}".format(classifier))
+        model = model_dict[classifier]
+        y_pred = model.predict(X_test)
+     
+        accuracy = []
+        precision = []
+        recall = []
+        f1_score = []
 
-        #Export results to CSV
-        Metrics.to_csv("Metrics.csv")
-        
+        for i in range(num_of_labels):
+            #Retrieve test and predicted value for that label
+            test = Y_test[:,i]
+            predict = y_pred[:,i]
+            
+            #Find number of True Positives, False Negatives, False positives and True Negatives
+            TP = np.sum(np.logical_and(test == 1, predict == 1))
+            FN = np.sum(np.logical_and(test == 1, predict == 0))
+            FP = np.sum(np.logical_and(test == 0, predict == 1))
+            TN = np.sum(np.logical_and(test == 0, predict == 0))
+    
+            #Calculate accuracy, preicsion, recall and f1_score
+            accuracy.append((TP + TN)/(TP + TN + FP +FN))
+            precision.append(TP / (TP + FP))
+            recall.append(TP / (TP + FN))
+            f1_score.append(2*(TP / (TP + FP)*TP / (TP + FN))/(TP / (TP + FP) + TP / (TP + FN)))
+    
+        #Append metric column to Metrics table
+        Metrics[classifier + "_accuracy"] = accuracy
+        Metrics[classifier + "_precsion"] = precision
+        Metrics[classifier + "_recall"] = recall
+        Metrics[classifier + "_f1_score"] = f1_score
+    
+    print("Exporting Metrics table")
+    #Export results to CSV
+    Metrics.to_csv("Metrics.csv")
+    
+    f1_columns = [x for x in Metrics.columns if "f1" in x]
+    
+    Average_f1_Table = pd.DataFrame(Metrics[f1_columns].mean(), columns = ["Average f1"])
+    Average_f1_Table.sort_values(by='Average f1', ascending = False, inplace = True)
+    Chosen_Model_Name = Average_f1_Table.index[0].split('_')[0]
+    Chosen_Model_File = model_dict[Chosen_Model_Name]
+    print(Chosen_Model_Name)
+    return Chosen_Model_File
+
+	
+
+#def gridsearch_model(Chosen_Model_Dict, X, Y):
+
+#    Chosen_Model_Name = Chosen_Model_Dict.keys()
+#    Chosen_Model = Chosen_Model_Dict
+
+#    if "RandomForest" in Chosen_Model_Name:
+#	parameters = {
+#        'Estimator__estimator__n_estimators': [50, 100, 200]}
+#    else:
+#	parameters = {
+#        'Estimator__estimator__learning_rate': [0.5, 1, 2],
+#	'Estimator__estimator__n_estimators':[50,100]}
+ 
+#    print("Grid Searching for {}".format(Chosen_Model_Name))
+#    cv = GridSearchCV(Chosen_Model, param_grid = parameters)
+#    X_train_cv, X_test_cv, y_train_cv, y_test_cv = train_test_split(X, Y,train_size = 0.1, test_size = 0.025)
+#    cv.fit(X_train_cv, y_train_cv)        
+
+#    return cv
+
 
 
 def save_model(model, model_filepath):
@@ -150,19 +224,21 @@ def main():
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
         X, Y, category_names = load_data(database_filepath)
-        X_train, X_test, Y_train, Y_test = train_test_split(X[:1000], Y[:1000], test_size=0.2)
-        print(X_train.shape)
+        num_of_labels = Y.shape[1]
+        X_train, X_test, Y_train, Y_test = train_test_split(X[:100], Y[:100], test_size = 0.2)
         print('Building model...')
-        model = build_model()
-        
+        model_dict = build_model()
+ 
         print('Training model...')
-        model.fit(X_train, Y_train)
+        for clf in model_dict.keys():
+            print("Traing model {}".format(clf))
+            model_dict[clf].fit(X_train, Y_train)
         
         print('Evaluating model...')
-        evaluate_model(model, X_test, Y_test, category_names)
+        final_model = evaluate_model(model_dict, X_test, Y_test, category_names, num_of_labels)
 
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
-        save_model(model, model_filepath)
+        save_model(final_model, model_filepath)
 
         print('Trained model saved!')
 

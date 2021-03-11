@@ -118,8 +118,8 @@ def index():
         {
             'data': [
                 Bar(
-                    x=genre_names,
-                    y=genre_counts
+                    x=list(genre_names),
+                    y=list(genre_counts)
                 )
             ],
 
@@ -136,8 +136,8 @@ def index():
                 {
             'data': [
                 Bar(
-                    x=X_type_count,
-                    y=Y_type_count
+                    x=list(X_type_count),
+                    y=list(Y_type_count)
                 )
             ],
 
@@ -182,7 +182,7 @@ def go():
 
 def main():
     port = int(os.environ.get('PORT', 3001))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=True)
 
 
 if __name__ == '__main__':
