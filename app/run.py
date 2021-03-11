@@ -146,25 +146,7 @@ def index():
                 }
             }
         },
-                        {
-            'data': [
-                Bar(
-                    x=list(X_type_count),
-                    y=list(Y_type_count)
-                )
-            ],
-
-            'layout': {
-                'title': 'Distribution of Message Categories',
-                'yaxis': {
-                    'title': "Count"
-                },
-                'xaxis': {
-                    'title': "Category"
-                }
-            }
-        },
-         {
+           {
             'data': [
                 {'x':list(Metrics.iloc[:,0]),
                  'y':list(Metrics['RandomForest_accuracy']),
