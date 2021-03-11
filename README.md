@@ -36,10 +36,12 @@ There are two major dataset in our project, and both of them are within data fol
 - flask
 
 ### Files and Folders
+<pre>
 Notebook
 - ETL pipeline preparation
 - ML pipeline preparation
 - Graph Notebook
+</pre>
 <pre>
 App Folder <br>
 |--templates folder <br>
@@ -47,17 +49,19 @@ App Folder <br>
 |   |-master.html: HTML for main web page <br>
 |-run.py: Main script for flask web app <br>
 </pre>
+<pre>
 Data Folder <br>
 |-disaster_categories.csv: Classification label of messages <br>
 |-disaster_messages.csv: Dataset of messages <br>
 |-DisasterResponse.db: SQLite database file <br>
 |-process_data.py: Script for handling data processing <br>
-
+</pre>
+<pre>
 Models Folder <br>
 |-classifier.pkl: Pickel file of trained model <br> 
 |-Metrics.csv: Dataset storing metric result of ML pipeline fitting <br>
 |-train_classifier.py: Script for running ML pipeline <br>
-
+</pre>
 ### Summary
 - We are now able to show visualization of our dataset and metrics of our ML pipeline on our main page just like image below
 ![image](images/main_page1.PNG)
