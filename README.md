@@ -59,6 +59,6 @@ Models Folder <br>
 |-train_classifier.py: Script for running ML pipeline <br>
 
 ### Summary
-1
+
 ### Acknowledgement
 Special thanks to figure eight for providing the dataset and Udacity for providing information and concept to accomplish the project.
