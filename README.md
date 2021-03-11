@@ -40,13 +40,13 @@ Notebook
 - ETL pipeline preparation
 - ML pipeline preparation
 - Graph Notebook
-
+<pre>
 App Folder <br>
 |--templates folder <br>
 |   |-go.html: HTML that handles online classification results <br>
 |   |-master.html: HTML for main web page <br>
 |-run.py: Main script for flask web app <br>
-
+</pre>
 Data Folder <br>
 |-disaster_categories.csv: Classification label of messages <br>
 |-disaster_messages.csv: Dataset of messages <br>
@@ -59,6 +59,17 @@ Models Folder <br>
 |-train_classifier.py: Script for running ML pipeline <br>
 
 ### Summary
+- We are now able to show visualization of our dataset and metrics of our ML pipeline on our main page just like image below
+![image](images/main_page1.PNG)
+
+- We can also perform online classification if you type text messages into the box. The result will be shown as below
+![image](images/online_classification.PNG)
+
+- Our algorithms can achieve high accuracy over 90%, but this is trivial in this case. Because there are mostly zeroes in our label matrix, we achieve high accuracy simply by guessing all labels 0. Instead, we use f1 score to evaluate our model, which is more meaningful in this application.
+
+- As mentioned in last paragraph, this is a very imbalanced dataset, meaning that there are a lot of zeros in our label. For some categories, you can observe that they contained mostly 0. This makes classification hard (or impossible) to function normally. Also, it makes evaluation even more difficult because you may encounter divide by 0 situation when calculating f1 score. You can see the influence by checking out last plot in our main page(capture below). Those blank point represent NAN value cause by divide by zero situation and some categories with low f1 score are caused by sparse label vector.
+![image](images/f1score_plot.PNG)
+
 
 ### Acknowledgement
 Special thanks to figure eight for providing the dataset and Udacity for providing information and concept to accomplish the project.
