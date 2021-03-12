@@ -16,6 +16,7 @@ from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.metrics import classification_report
+from sklearn.model_selection import GridSearchCV
 
 nltk.download('averaged_perceptron_tagger')
 nltk.download('punkt')
@@ -23,6 +24,12 @@ nltk.download('stopwords')
 nltk.download('wordnet')
 
 def load_data(database_filepath):
+    """
+    This function loads the dataset from database path and return X and Y for later usage
+    
+    Input: Filepath to database object
+    Output: X and Y data along with label (category) names    
+    """
     # load data from database
     engine = create_engine('sqlite:///' + database_filepath)
     df = pd.read_sql_table('Disaster_Response_Table', engine)
@@ -39,6 +46,7 @@ def load_data(database_filepath):
 def tokenize(text):
     """
     This tokenize function processes input text to generate useful word tokens
+    
     Input: text content
     Output: processed word tokens    
     """
@@ -89,6 +97,12 @@ class Special_Puncs_Counter():
         return pd.DataFrame(X_tagged)
     
 def build_model():
+    """
+    This function created pipeline objects using features and algorithms of interest
+    
+    Input: No input
+    Output: Dictionary containing pipeline name and object
+    """
     #Create pipeline object
     #RandomForest Algorithm without new feature
     RF_pipeline = Pipeline([
@@ -140,7 +154,13 @@ def build_model():
 
 
 def evaluate_model(model_dict, X_test, Y_test, category_names, num_of_labels):
-
+    """
+    This function covers the evaluation process of our model including accuracy, recall, precision and f1 score. 
+    In the end, this function exports the metric result to a csv file so that we can check for later.
+    
+    Input: Dictionary containing pipeline name and pipeline object after fitting, test set data, label names and number of labels
+    Output: Final model object chosen   
+    """
     Metrics = pd.DataFrame(index = category_names)
     for classifier in model_dict.keys():
         print("Evaluating {}".format(classifier))
@@ -181,38 +201,41 @@ def evaluate_model(model_dict, X_test, Y_test, category_names, num_of_labels):
     
     f1_columns = [x for x in Metrics.columns if "f1" in x]
     
+    #We filter the best model out by check the model with highest average f1 score
     Average_f1_Table = pd.DataFrame(Metrics[f1_columns].mean(), columns = ["Average f1"])
     Average_f1_Table.sort_values(by='Average f1', ascending = False, inplace = True)
     Chosen_Model_Name = Average_f1_Table.index[0].split('_')[0]
     Chosen_Model_File = model_dict[Chosen_Model_Name]
+    
+    #Print out final chosen model name so that we can know which model was chosen
     print(Chosen_Model_Name)
     return Chosen_Model_File
 
 	
 
-#def gridsearch_model(Chosen_Model_Dict, X, Y):
+def gridsearch_model(Chosen_Model, X_train, Y_train):
+    """
+    This function further searches for best parameters for the chosen model using GridSearchCV.
+    
+    Input: Chosen model and training data
+    Output: Chosen model after grid search
+    """
+    parameters = {'Estimator__estimator__n_estimators': [50, 100, 200]}
 
-#    Chosen_Model_Name = Chosen_Model_Dict.keys()
-#    Chosen_Model = Chosen_Model_Dict
+    cv = GridSearchCV(Chosen_Model, param_grid = parameters, scoring = 'f1_macro')
+    cv.fit(X_train, Y_train)        
 
-#    if "RandomForest" in Chosen_Model_Name:
-#	parameters = {
-#        'Estimator__estimator__n_estimators': [50, 100, 200]}
-#    else:
-#	parameters = {
-#        'Estimator__estimator__learning_rate': [0.5, 1, 2],
-#	'Estimator__estimator__n_estimators':[50,100]}
- 
-#    print("Grid Searching for {}".format(Chosen_Model_Name))
-#    cv = GridSearchCV(Chosen_Model, param_grid = parameters)
-#    X_train_cv, X_test_cv, y_train_cv, y_test_cv = train_test_split(X, Y,train_size = 0.1, test_size = 0.025)
-#    cv.fit(X_train_cv, y_train_cv)        
-
-#    return cv
+    return cv
 
 
 
 def save_model(model, model_filepath):
+    """
+    This function saves the model into a pickel file so that we don't have run the modeling process over and over again
+    
+    Input: Model file and file path to store the file
+    Output: No output
+    """
     import pickle
     pickle_file = open(model_filepath,'wb')
     pickle.dump(model, pickle_file)
@@ -220,6 +243,13 @@ def save_model(model, model_filepath):
 
 
 def main():
+    """
+    This main function covers the whole training process from building model object to saving final model
+    
+    Input: No input
+    Output: No output
+    """   
+    
     if len(sys.argv) == 3:
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
@@ -237,8 +267,11 @@ def main():
         print('Evaluating model...')
         final_model = evaluate_model(model_dict, X_test, Y_test, category_names, num_of_labels)
 
+        print("Doing grid searching")
+        final_model_cv = gridsearch_model(final_model, X_train, Y_train)
+        
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
-        save_model(final_model, model_filepath)
+        save_model(final_model_cv, model_filepath)
 
         print('Trained model saved!')
 

@@ -3,12 +3,25 @@ import pandas as pd
 from sqlalchemy import create_engine
 
 def load_data(messages_filepath, categories_filepath):
+    """
+    This function loads the message and category dataset and merge them using inner join
+    
+    Input: File path of the message and category dataset
+    Output: Loaded dataframe
+    """
     messages = pd.read_csv(messages_filepath)
     categories = pd.read_csv(categories_filepath)
     df = messages.merge(categories, how="inner", on='id')
     return df
 
 def clean_data(df):
+    """
+    This function clean the input dataset by applying text manipulation and dropping duplicates
+    
+    Input: Dataframe of interest
+    Output: Cleaned dataframe
+    """
+    
     # create a dataframe of the 36 individual category columns
     categories = df['categories'].str.split(";", expand=True)
 
@@ -38,16 +51,31 @@ def clean_data(df):
 
     # drop duplicates
     df = df[~(df.duplicated())]
+    
+    #Turn related value of 2 to 1 (I don't know what 2 is for?)
+    df.loc[df['related'] == 2,'related'] = 1
 
     return df
 
 
 def save_data(df, database_filename):
+    """
+    This function save the dataframe into designated SQLite database
+    
+    Input: Dataframe and database name
+    Output: No output
+    """
     engine = create_engine('sqlite:///'+database_filename)
-    df.to_sql("Disaster_Response_Table", engine, index=False)
+    df.to_sql("Disaster_Response_Table", engine, index=False, if_exists = 'replace')
 
 
 def main():
+    """
+    This main function include the data processing pipeline
+    
+    Input: No input
+    Output: No output
+    """
     if len(sys.argv) == 4:
 
         messages_filepath, categories_filepath, database_filepath = sys.argv[1:]
